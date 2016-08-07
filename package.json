@@ -3,17 +3,19 @@
   "description": "Parse a .torrent file and return an object of keys/values",
   "version": "3.3.8",
   "author": "Sean Lang <slang800@gmail.com>",
-  "bin": "./bin/cmd.js",
+  "bin": "./bin",
   "bugs": {
     "url": "https://github.com/feross/parse-torrent-file/issues"
   },
   "dependencies": {
+    "argparse": "^1.0.7",
     "bencode": "^0.9.0",
     "simple-sha1": "^2.0.0",
     "uniq": "^1.0.1"
   },
   "devDependencies": {
     "brfs": "^1.0.0",
+    "coffee-script": "^1.10.0",
     "standard": "^7.0.0",
     "tape": "^4.0.0",
     "webtorrent-fixtures": "^1.4.0",
