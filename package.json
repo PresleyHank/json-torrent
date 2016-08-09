@@ -23,13 +23,12 @@
   },
   "homepage": "https://github.com/feross/parse-torrent-file",
   "keywords": [
-    "torrent",
-    "parse torrent",
-    "read torrent",
     ".torrent",
+    "bittorrent",
+    "parse torrent",
     "peer-to-peer",
-    "bittorrent",
-    "bittorrent",
+    "read torrent",
+    "torrent",
     "webtorrent"
   ],
   "license": "GPL-3.0",
