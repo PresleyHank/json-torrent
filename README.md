@@ -101,7 +101,3 @@ var buf = parseTorrentFile.encode(parsed)
 ## credit
 
 This was originally based on [read-torrent](https://www.npmjs.org/package/read-torrent) by [mafintosh](https://twitter.com/mafintosh). It's basically a pared-down version of that, but it works in the browser (so [WebTorrent](http://webtorrent.io) can use it), doesn't have huge npm dependencies like `request` (saving on file size), and it has tests. Thanks for publishing good modules, mafintosh!
-
-## license
-
-MIT. Copyright (c) [Feross Aboukhadijeh](http://feross.org).

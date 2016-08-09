@@ -2,7 +2,7 @@
   "name": "parse-torrent-file",
   "description": "Parse a .torrent file and return an object of keys/values",
   "version": "3.3.8",
-  "author": "Feross Aboukhadijeh <feross@feross.org> (http://feross.org/)",
+  "author": "Sean Lang <slang800@gmail.com>",
   "bin": "./bin/cmd.js",
   "bugs": {
     "url": "https://github.com/feross/parse-torrent-file/issues"
@@ -30,7 +30,7 @@
     "bittorrent",
     "webtorrent"
   ],
-  "license": "MIT",
+  "license": "GPL-3.0",
   "main": "index.js",
   "repository": {
     "type": "git",
