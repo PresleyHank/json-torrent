@@ -1,21 +1,23 @@
-# parse-torrent-file
+# json-torrent
 
 [![travis](https://img.shields.io/travis/feross/parse-torrent-file/master.svg)](https://travis-ci.org/feross/parse-torrent-file) [![npm](https://img.shields.io/npm/v/parse-torrent-file.svg)](https://npmjs.org/package/parse-torrent-file) [![downloads](https://img.shields.io/npm/dm/parse-torrent-file.svg)](https://npmjs.org/package/parse-torrent-file)
 
 [![Sauce Test Status](https://saucelabs.com/browser-matrix/parse-torrent-file.svg)](https://saucelabs.com/u/parse-torrent-file)
 
-Parse a .torrent file and return an object of keys/values. Works in node and the browser (with [browserify](http://browserify.org/)). This module is used by [WebTorrent](http://webtorrent.io)!
+A tool to convert torrent files to and from a JSON representation - designed to make torrent file editing, searching, storage, and analysis easy.
+
+Parse a .torrent file and return an object of keys/values. Works in node and the browser (with [browserify](http://browserify.org/)).
 
 ## install
 
 ```
-npm install parse-torrent-file
+npm install json-torrent
 ```
 
 ## usage
 
 ```javascript
-var parseTorrentFile = require('parse-torrent-file')
+var parseTorrentFile = require('json-torrent')
 var path = require('path')
 
 var torrent = fs.readFileSync(path.join(__dirname, 'torrents/leaves.torrent'))
@@ -84,7 +86,7 @@ The `parsed` torrent object looks like this:
 To convert a parsed torrent back into a .torrent file buffer, call `parseTorrentFile.encode`.
 
 ```javascript
-var parseTorrentFile = require('parse-torrent-file')
+var parseTorrentFile = require('json-torrent')
 
 // parse a torrent
 var parsed = parseTorrentFile(/* some buffer */)

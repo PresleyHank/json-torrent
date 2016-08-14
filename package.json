@@ -1,11 +1,13 @@
 {
-  "name": "parse-torrent-file",
+  "name": "json-torrent",
   "description": "Parse a .torrent file and return an object of keys/values",
   "version": "3.3.8",
   "author": "Sean Lang <slang800@gmail.com>",
-  "bin": "./bin",
+  "bin": {
+    "json-torrent": "./bin/index.js"
+  },
   "bugs": {
-    "url": "https://github.com/feross/parse-torrent-file/issues"
+    "url": "https://github.com/slang800/json-torrent/issues"
   },
   "dependencies": {
     "argparse": "^1.0.7",
@@ -21,7 +23,7 @@
     "webtorrent-fixtures": "^1.4.0",
     "zuul": "^3.0.0"
   },
-  "homepage": "https://github.com/feross/parse-torrent-file",
+  "homepage": "https://github.com/slang800/json-torrent",
   "keywords": [
     ".torrent",
     "bittorrent",
@@ -35,7 +37,7 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git://github.com/feross/parse-torrent-file.git"
+    "url": "git://github.com/slang800/json-torrent.git"
   },
   "scripts": {
     "test": "standard && npm run test-node && npm run test-browser",
