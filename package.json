@@ -12,14 +12,14 @@
   "dependencies": {
     "argparse": "^1.0.7",
     "bencode": "^0.9.0",
-    "simple-sha1": "^2.0.0",
-    "uniq": "^1.0.1"
+    "lodash": "^4.15.0",
+    "simple-sha1": "^2.0.0"
   },
   "devDependencies": {
     "brfs": "^1.0.0",
     "coffee-script": "^1.10.0",
-    "standard": "^7.0.0",
-    "tape": "^4.0.0",
+    "mocha": "^3.0.2",
+    "should": "^10.0.0",
     "webtorrent-fixtures": "^1.4.0",
     "zuul": "^3.0.0"
   },
@@ -34,15 +34,15 @@
     "webtorrent"
   ],
   "license": "GPL-3.0",
-  "main": "index.js",
+  "main": "lib",
   "repository": {
     "type": "git",
     "url": "git://github.com/slang800/json-torrent.git"
   },
   "scripts": {
-    "test": "standard && npm run test-node && npm run test-browser",
+    "test": "npm run test-node",
     "test-browser": "zuul -- test/*.js",
     "test-browser-local": "zuul --local -- test/*.js",
-    "test-node": "tape test/*.js"
+    "test-node": "mocha"
   }
 }

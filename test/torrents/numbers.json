@@ -1,0 +1,25 @@
+{
+  "announce": [],
+  "created": 1449730287842,
+  "encoding": "UTF-8",
+  "files": [
+    {
+      "length": 1,
+      "path": "1.txt"
+    },
+    {
+      "length": 2,
+      "path": "2.txt"
+    },
+    {
+      "length": 3,
+      "path": "3.txt"
+    }
+  ],
+  "infoHash": "89d97c2261a21b040cf11caa661a3ba7233bb7e6",
+  "name": "numbers",
+  "pieceLength": 16384,
+  "pieces": [
+    "1f74648e50a6a6708ec54ab327a163d5536b7ced"
+  ]
+}

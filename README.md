@@ -6,40 +6,16 @@
 
 A tool to convert torrent files to and from a JSON representation - designed to make torrent file editing, searching, storage, and analysis easy.
 
-Parse a .torrent file and return an object of keys/values. Works in node and the browser (with [browserify](http://browserify.org/)).
-
-## install
-
-```
-npm install json-torrent
-```
-
-## usage
-
-```javascript
-var parseTorrentFile = require('json-torrent')
-var path = require('path')
-
-var torrent = fs.readFileSync(path.join(__dirname, 'torrents/leaves.torrent'))
-var parsed
-try {
-  parsed = parseTorrentFile(torrent)
-} catch (e) {
-  // the torrent file was corrupt
-  console.error(e)
-}
-
-console.log(parsed.name) // Prints "Leaves of Grass by Walt Whitman.epub"
-```
-
-The `parsed` torrent object looks like this:
+Parse a .torrent file and return an object of keys/values. Works in node and the browser (with [browserify](http://browserify.org/)). The `parsed` torrent object looks like this:
 
 ```javascript
 {
   "infoHash": "d2474e86c95b19b8bcfdb92bc12c9d44667cfa36",
   "name": "Leaves of Grass by Walt Whitman.epub",
-  "private": false,
-  "created": "2013-08-01T13:27:46.000Z",
+  "encoding": "UTF-8",
+  "created": 1375363666,
+  "createdBy": "uTorrent/3300",
+  "comment": "Torrent downloaded from torrent cache at http://itorrents.org",
   "announce": [
     "http://tracker.example.com/announce"
   ],
@@ -47,14 +23,10 @@ The `parsed` torrent object looks like this:
   "files": [
     {
       "path": "Leaves of Grass by Walt Whitman.epub",
-      "name": "Leaves of Grass by Walt Whitman.epub",
-      "length": 362017,
-      "offset": 0
+      "length": 362017
     }
   ],
-  "length": 362017,
   "pieceLength": 16384,
-  "lastPieceLength": 1569,
   "pieces": [
     "1f9c3f59beec079715ec53324bde8569e4a0b4eb",
     "ec42307d4ce5557b5d3964c5ef55d354cf4a6ecc",
@@ -83,18 +55,83 @@ The `parsed` torrent object looks like this:
 }
 ```
 
+## Install
+
+Full installation instructions [here](https://www.npmjs.com/package/json-torrent/tutorial).
+
+```bash
+npm install json-torrent
+```
+
+## CLI
+
+We include a CLI with two commands (`encode` & `decode`) that operates over STDIO. Decoded JSON is printed in a single line:
+
+```bash
+$ json-torrent decode < ./leaves-of-grass.torrent
+{"infoHash":"d2474e86c95b19b8bcfdb92bc12c9d44667cfa36","name":"Leaves of Grass by Walt Whitman.epub","encoding":"UTF-8","created":1375363666,"createdBy":"uTorrent/3300","comment":"Torrent downloaded from torrent cache at http://itorrents.org","announce":["http://tracker.example.com/announce"],"urlList":[],"files":[{"path":"Leaves of Grass by Walt Whitman.epub","length":362017}],"pieceLength":16384,"pieces":["1f9c3f59beec079715ec53324bde8569e4a0b4eb","ec42307d4ce5557b5d3964c5ef55d354cf4a6ecc"...
+```
+
+This isn't easy to read, so you should use [jq](https://stedolan.github.io/jq/) when you need coloring & pretty-printing:
+
+```bash
+$ json-torrent decode < ./leaves-of-grass.torrent | jq
+{
+  "infoHash": "d2474e86c95b19b8bcfdb92bc12c9d44667cfa36",
+  "name": "Leaves of Grass by Walt Whitman.epub",
+  "encoding": "UTF-8",
+  "created": 1375363666,
+  "createdBy": "uTorrent/3300",
+  "comment": "Torrent downloaded from torrent cache at http://itorrents.org"
+  ...
+}
+```
+
+Plus, jq can be used for basic editing, like stripping out extraneous fields:
+
+```bash
+json-torrent decode < leaves-of-grass.torrent | jq "del(.comment, .announce)" | json-torrent encode > leaves-of-grass-slim.torrent
+```
+
+...Or querying specific fields:
+
+```bash
+json-torrent decode < slackware.torrent | jq ".files[].path"
+"slackware-12.2-install-dvd.iso"
+"slackware-12.2-install-dvd.iso.asc"
+"slackware-12.2-install-dvd.iso.md5"
+```
+
+## Usage
+
+```javascript
+var parseTorrentFile = require('json-torrent')
+var torrent = fs.readFileSync('torrents/leaves.torrent')
+var parsed
+
+try {
+  parsed = parseTorrentFile.decode(torrent)
+} catch (e) {
+  // the torrent file was corrupt
+  console.error(e)
+}
+
+console.log(parsed.name) // Prints "Leaves of Grass by Walt Whitman.epub"
+```
+
 To convert a parsed torrent back into a .torrent file buffer, call `parseTorrentFile.encode`.
 
 ```javascript
 var parseTorrentFile = require('json-torrent')
 
 // parse a torrent
-var parsed = parseTorrentFile(/* some buffer */)
+var parsed = parseTorrentFile.decode(/* some buffer */)
 
 // convert parsed torrent back to a buffer
 var buf = parseTorrentFile.encode(parsed)
 ```
 
-## credit
+## Similar Tools
 
-This was originally based on [read-torrent](https://www.npmjs.org/package/read-torrent) by [mafintosh](https://twitter.com/mafintosh). It's basically a pared-down version of that, but it works in the browser (so [WebTorrent](http://webtorrent.io) can use it), doesn't have huge npm dependencies like `request` (saving on file size), and it has tests. Thanks for publishing good modules, mafintosh!
+- [parse-torrent-file](https://www.npmjs.com/package/parse-torrent-file), which this tool is based upon. It includes some extra data in the parsed output (like Buffers) and doesn't support lossless serialization as JSON.
+- [read-torrent](https://www.npmjs.org/package/read-torrent), the tool that parse-torrent-file was based on, which includes more extra junk, like a dependency upon request and some logic for reading files.
