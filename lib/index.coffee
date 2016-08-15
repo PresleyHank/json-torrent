@@ -58,7 +58,6 @@ decode = (torrent) ->
   ).map((value) ->
     if value.length is 1 then value[0] else value
   )
-  result.announce = _.uniq(result.announce)
 
   # handle url-list (BEP19 / web seeding)
   if torrent['url-list']?
@@ -68,7 +67,6 @@ decode = (torrent) ->
     ).map((url) ->
       url.toString()
     )
-    result.urlList = _.uniq(result.urlList)
 
   result.files = (
     if torrent.info.files

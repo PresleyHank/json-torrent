@@ -54,10 +54,16 @@ describe 'decode', ->
     ( -> decode(fixtures.corrupt.torrent)).should.throw(Error)
 
 describe 'announce-list', ->
-  it 'should dedupe announce list', ->
+  it 'should not dedupe announce list', ->
+    # the JSON should be an accurate representation of the torrent contents, not
+    # normalized
     should.deepEqual(
       decode(leavesDuplicateTracker).announce,
-      ['http://tracker.example.com/announce']
+      [
+        'http://tracker.example.com/announce'
+        'http://tracker.example.com/announce'
+        'http://tracker.example.com/announce'
+      ]
     )
 
   it 'should parse torrent with empty announce-list', ->
