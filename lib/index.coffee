@@ -21,9 +21,9 @@ decode = (torrent) ->
   ensure torrent.info.pieces, 'info.pieces'
 
   if torrent.info.files
-    torrent.info.files.forEach (file) ->
-      ensure typeof file.length is 'number', 'info.files[0].length'
-      ensure file.path, 'info.files[0].path'
+    torrent.info.files.forEach (file, i) ->
+      ensure typeof file.length is 'number', "info.files[#{i}].length"
+      ensure file.path, "info.files[#{i}].path"
       return
   else
     ensure typeof torrent.info.length is 'number', 'info.length'
