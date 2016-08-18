@@ -11,6 +11,7 @@ sha1 = require 'simple-sha1'
 decode = (torrent) ->
   if not Buffer.isBuffer(torrent)
     throw new Error('Torrent is not a Buffer')
+
   torrent = bencode.decode(torrent)
 
   # sanity check
@@ -29,28 +30,39 @@ decode = (torrent) ->
 
   result = {}
   result.infoHash = sha1.sync(bencode.encode(torrent.info))
-  result.name = torrent.info.name.toString()
 
-  encoding = torrent.encoding
-  if encoding? then result.encoding = encoding.toString()
+  torrent = mapValuesRecursive(torrent, (value, key) ->
+    if Buffer.isBuffer(value)
+      if key is 'pieces'
+        value.toString('hex')
+      else
+        value.toString()
+    else
+      value
+  )
+
+  result.name = torrent.info.name
+
+  if torrent.encoding?
+    result.encoding = torrent.encoding
 
   if torrent.info.private?
     result.private = !!torrent.info.private
 
-  if torrent['creation date']
+  if torrent['creation date']?
     result.created = torrent['creation date']
 
-  if torrent['created by']
-    result.createdBy = torrent['created by'].toString()
+  if torrent['created by']?
+    result.createdBy = torrent['created by']
 
-  if Buffer.isBuffer(torrent.comment)
-    result.comment = torrent.comment.toString()
+  if torrent.comment?
+    result.comment = torrent.comment
 
   # announce and announce-list will be missing if metadata fetched via
   # ut_metadata
   result.announce = (
     if torrent['announce-list'] and torrent['announce-list'].length
-      mapRecursive(torrent['announce-list'], (value) -> value.toString())
+      torrent['announce-list']
     else if torrent.announce
       [torrent.announce.toString()]
     else
@@ -131,8 +143,8 @@ splitPieces = (buf) ->
   pieces = []
   i = 0
   while i < buf.length
-    pieces.push buf.slice(i, i + 20).toString('hex')
-    i += 20
+    pieces.push buf.slice(i, i + 40)
+    i += 40
   pieces
 
 ###*
@@ -155,12 +167,13 @@ ensure = (bool, fieldName) ->
     throw new Error('Torrent is missing required field: ' + fieldName)
   return
 
-mapRecursive = (array, mapFn) ->
-  _.map(array, (value) ->
-    if Array.isArray(value)
-      mapRecursive(value, mapFn)
+mapValuesRecursive = (obj, mapFn) ->
+  fn = if Array.isArray(obj) then _.map else _.mapValues
+  fn(obj, (value, key) ->
+    if Array.isArray(value) or _.isPlainObject(value)
+      mapValuesRecursive(value, mapFn)
     else
-      mapFn(value)
+      mapFn(value, key)
   )
 
 module.exports = {decode, encode}
