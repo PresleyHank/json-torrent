@@ -68,6 +68,8 @@ decode = (torrent) ->
     else
       []
   ).map((value) ->
+    # selectively flatten announce-list so the most common case (each tier
+    # having 1 tracker) results in an unnested list.
     if value.length is 1 then value[0] else value
   )
 
@@ -127,6 +129,7 @@ encode = (parsed) ->
     # Only add an announce-list if the "multiple trackers" feature (introduced
     # in BEP12) is being used. This reduces the size of the torret file.
     torrent['announce-list'] = parsed.announce.map((url) ->
+      # unflatten announce-list
       if Array.isArray(url) then url else [url]
     )
 
