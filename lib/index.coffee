@@ -15,23 +15,23 @@ decode = (torrent) ->
 
   # sanity check
   ensure torrent.info, 'info'
-  ensure torrent.info['name.utf-8'] or torrent.info.name, 'info.name'
+  ensure torrent.info.name, 'info.name'
   ensure torrent.info['piece length'], 'info[\'piece length\']'
   ensure torrent.info.pieces, 'info.pieces'
 
   if torrent.info.files
     torrent.info.files.forEach (file) ->
       ensure typeof file.length is 'number', 'info.files[0].length'
-      ensure file['path.utf-8'] or file.path, 'info.files[0].path'
+      ensure file.path, 'info.files[0].path'
       return
   else
     ensure typeof torrent.info.length is 'number', 'info.length'
 
   result = {}
   result.infoHash = sha1.sync(bencode.encode(torrent.info))
-  result.name = (torrent.info['name.utf-8'] or torrent.info.name).toString()
+  result.name = torrent.info.name.toString()
 
-  encoding = torrent['encoding.utf-8'] or torrent.encoding
+  encoding = torrent.encoding
   if encoding? then result.encoding = encoding.toString()
 
   if torrent.info.private?
@@ -72,7 +72,7 @@ decode = (torrent) ->
     if torrent.info.files
       torrent.info.files.map((file, i) ->
         {
-          path: joinPathArray(file['path.utf-8'] or file.path)
+          path: joinPathArray(file.path)
           length: file.length
         }
       )
