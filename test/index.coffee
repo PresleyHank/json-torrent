@@ -35,20 +35,20 @@ leaves = fs.readFileSync(
 
 describe 'decode', ->
   it 'should parse a single file torrent', ->
-    should.deepEqual leavesParsed, decode(leaves)
+    should.deepEqual decode(leaves), leavesParsed
 
   it 'should parse a "torrent" from magnet metadata protocol', ->
     should.deepEqual(
-      leavesMagnetParsed
       decode(leavesMetadata)
+      leavesMagnetParsed
     )
 
   it 'should parse a multiple file torrent', ->
-    should.deepEqual numbersParsed, decode(numbers)
+    should.deepEqual decode(numbers), numbersParsed
 
   it.skip 'should parse a torrent from object', ->
     torrent = bencode.decode(numbers)
-    should.deepEqual numbersParsed, decode(torrent)
+    should.deepEqual decode(torrent), numbersParsed
 
   it 'should throw an error when torrent file is missing `name` field', ->
     ( -> decode(fixtures.corrupt.torrent)).should.throw(Error)
