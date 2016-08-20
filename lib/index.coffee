@@ -143,6 +143,8 @@ encode = (parsed) ->
   bencode.encode torrent
 
 splitPieces = (buf) ->
+  if buf.length < 40 or buf.length % 40 isnt 0
+    throw new Error('Pieces list has incorrect length')
   pieces = []
   i = 0
   while i < buf.length
