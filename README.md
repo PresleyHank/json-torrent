@@ -6,7 +6,7 @@
 
 A tool to convert torrent files to and from a JSON representation - designed to make torrent file editing, searching, storage, and analysis easy.
 
-Parse a .torrent file and return an object of keys/values. Works in node and the browser (with [browserify](http://browserify.org/)). The `parsed` torrent object looks like this:
+Parse a torrent file and return an object of keys/values. Works in node and the browser (with [browserify](http://browserify.org/)). The `parsed` torrent object looks like this:
 
 ```javascript
 {
@@ -119,7 +119,7 @@ try {
 console.log(parsed.name) // Prints "Leaves of Grass by Walt Whitman.epub"
 ```
 
-To convert a parsed torrent back into a .torrent file buffer, call `parseTorrentFile.encode`.
+To convert a parsed torrent back into a torrent file buffer, call `parseTorrentFile.encode`.
 
 ```javascript
 var parseTorrentFile = require('json-torrent')
