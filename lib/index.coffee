@@ -189,13 +189,13 @@ ensure = (bool, fieldName) ->
     throw new Error('Torrent is missing required field: ' + fieldName)
   return
 
-mapValuesRecursive = (obj, mapFn) ->
+mapValuesRecursive = (obj, mapFn, fullPath = []) ->
   fn = if Array.isArray(obj) then _.map else _.mapValues
   fn(obj, (value, key) ->
     if Array.isArray(value) or _.isPlainObject(value)
-      mapValuesRecursive(value, mapFn)
+      mapValuesRecursive(value, mapFn, fullPath.concat(key))
     else
-      mapFn(value, key)
+      mapFn(value, key, fullPath)
   )
 
 module.exports = {decode, encode}
