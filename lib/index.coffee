@@ -142,6 +142,23 @@ encode = (parsed) ->
 
   bencode.encode torrent
 
+decodeStringBuffer = (buf, encoding, key) ->
+  if key in HEX_ENCODED_FIELDS
+    buf.toString('hex') # hex always works
+  else
+    iconv.decode(buf, encoding)
+
+encodeStringBuffer = (buf, encoding, key) ->
+  if key in HEX_ENCODED_FIELDS
+    new Buffer(value, 'hex')
+  else
+    iconv.encode(buf, encoding)
+
+moveKey = (obj, oldKey, newKey) ->
+  if obj[oldKey]?
+    obj[newKey] = obj[oldKey]
+    delete obj[oldKey]
+
 splitPieces = (buf) ->
   if buf.length < 40 or buf.length % 40 isnt 0
     throw new Error('Pieces list has incorrect length')
