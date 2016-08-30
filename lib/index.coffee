@@ -1,6 +1,40 @@
 _ = require 'lodash'
 bencode = require 'bencode'
+iconv = require 'iconv-lite'
 sha1 = require 'simple-sha1'
+
+MOVE_FIELD_FROM_INFO = [
+  'files'
+  'name'
+  'piece length'
+  'pieces'
+  'private'
+]
+
+# fields that we add to denote formatting
+NON_DATA_FIELDS = [
+  'infoHash'
+  'usesDuplicateUtf8NameKey'
+  'usesDuplicateUtf8PathKey'
+  'usesExtraneousFilesArray'
+]
+
+HEX_ENCODED_FIELDS = [
+  'ed2k'
+  'filehash'
+  'info_hash'
+  'pieces'
+  'sha1'
+  'unique id'
+]
+
+# announce-list is also renamed, but it's merged with the announce field, so
+# we can't do a straight rename
+FIELD_RENAME_MAP =
+  created: 'creation date'
+  createdBy: 'created by'
+  pieceLength: 'piece length'
+  urlList: 'url-list'
 
 ###*
  * Parse a torrent. Throws an exception if the torrent is missing required
@@ -28,43 +62,34 @@ decode = (torrent) ->
   else
     ensure typeof torrent.info.length is 'number', 'info.length'
 
-  result = {}
-  result.infoHash = sha1.sync(bencode.encode(torrent.info))
+  torrent.infoHash = sha1.sync(bencode.encode(torrent.info))
 
-  torrent = mapValuesRecursive(torrent, (value, key) ->
+  # figure out the encoding first
+  if Buffer.isBuffer(torrent.encoding)
+    torrent.encoding = torrent.encoding.toString()
+
+  torrentEncoding = torrent.encoding or 'utf8'
+
+  torrent = mapValuesRecursive(torrent, (value, key, fullPath) ->
     if Buffer.isBuffer(value)
-      if key is 'pieces'
-        value.toString('hex')
-      else
-        value.toString()
+      encoding = (
+        if fullPath[-1...][0] is 'path.utf-8'
+          'utf8'
+        else
+          torrentEncoding
+      )
+      decodeStringBuffer(value, encoding, key)
     else
       value
   )
 
-  result.name = torrent.info.name
-
-  if torrent.encoding?
-    result.encoding = torrent.encoding
-
-  if torrent.info.private?
-    result.private = !!torrent.info.private
-
-  if torrent['creation date']?
-    result.created = torrent['creation date']
-
-  if torrent['created by']?
-    result.createdBy = torrent['created by']
-
-  if torrent.comment?
-    result.comment = torrent.comment
-
   # announce and announce-list will be missing if metadata fetched via
   # ut_metadata
-  result.announce = (
+  torrent.announce = (
     if torrent['announce-list'] and torrent['announce-list'].length
       torrent['announce-list']
     else if torrent.announce
-      [torrent.announce.toString()]
+      [torrent.announce]
     else
       []
   ).map((value) ->
@@ -72,75 +97,149 @@ decode = (torrent) ->
     # having 1 tracker) results in an unnested list.
     if value.length is 1 then value[0] else value
   )
+  delete torrent['announce-list']
 
-  # handle url-list (BEP19 / web seeding)
-  if torrent['url-list']?
-    # some clients set url-list to empty string
-    result.urlList = (
-      if torrent['url-list'].length > 0 then [torrent['url-list']] else []
-    ).map((url) ->
-      url.toString()
+  torrentLength = torrent.info.length
+  delete torrent.info.length
+
+  for key in MOVE_FIELD_FROM_INFO
+    if torrent[key]?
+      throw new Error("Torrent has disallowed key #{key} (outside of info)")
+    if torrent.info[key]?
+      torrent[key] = torrent.info[key]
+      delete torrent.info[key]
+
+  for newKey, key of FIELD_RENAME_MAP
+    if torrent[newKey]?
+      throw new Error("Torrent has disallowed key #{newKey}")
+    moveKey(torrent, key, newKey)
+
+  if torrent.info['name.utf-8']? and torrent.info['name.utf-8'] is torrent.name
+    torrent.usesDuplicateUtf8NameKey = true
+    delete torrent.info['name.utf-8']
+
+  if Object.keys(torrent.info).length is 0
+    delete torrent.info
+
+  if torrent.files
+    torrent.files = torrent.files.map((file, i) ->
+      # actually, we should loop through the whole thing and decide if all the
+      # keys are duplicates first
+      if i isnt 0 and file['path.utf-8']? isnt torrent.usesDuplicateUtf8PathKey?
+        # all of the earlier keys up to this point had path.utf-8 or all of the
+        # earlier keys up to this point didn't have path.utf-8
+        throw new Error("Torrent has mix between path.utf-8 and regular path
+        keys")
+
+      if file['path.utf-8']?
+        if _.isEqual(file.path, file['path.utf-8'])
+          # we set usesDuplicateUtf8PathKey, so we can add it back during encode
+          # by copying the regular path key
+          torrent.usesDuplicateUtf8PathKey = true
+          delete file['path.utf-8']
+        else
+          throw new Error("Torrent has unequal path keys... implement this")
+
+        if not file.path?
+          throw new Error("Torrent has no regular path key")
+
+      file.path = joinPathArray(file.path)
+      return file
     )
+    if torrent.files.length is 1
+      # uTorrent does this, and we need to pay attention to it because it will
+      # break the infoHash & throw an error if we normalize the files array
+      torrent.usesExtraneousFilesArray = true
+  else
+    torrent.files = [
+      path: torrent.name
+      length: torrentLength
+    ]
 
-  result.files = (
-    if torrent.info.files
-      torrent.info.files.map((file, i) ->
-        {
-          path: joinPathArray(file.path)
-          length: file.length
-        }
-      )
+  if torrent.private?
+    if torrent.private in [0, 1]
+      torrent.private = Boolean(torrent.private)
     else
-      [
-        path: result.name
-        length: torrent.info.length
-      ]
-  )
+      throw new Error("Bad value for field 'private': #{torrent.private}")
 
-  result.pieceLength = torrent.info['piece length']
-  result.pieces = splitPieces(torrent.info.pieces)
-  return result
+  torrent.pieces = splitPieces(torrent.pieces)
+  return torrent
 
 ###*
  * Convert a parsed torrent object back into a .torrent file buffer.
  * @param {Object} parsed Parsed torrent
  * @return {Buffer}
 ###
-encode = (parsed) ->
-  torrent = info:
-    'piece length': parsed.pieceLength
-    length: parsed.files.reduce(((sum, file) -> sum + file.length), 0)
-    name: parsed.name
-    pieces: new Buffer(parsed.pieces.join(''), 'hex')
+encode = (parsed, skipInfoHashCheck = false) ->
+  parsed = _.cloneDeep(parsed) # so we can mutate it freely
+  parsed.info ?= {}
+  parsed.info.length = parsed.files.reduce(((l, file) -> l + file.length), 0)
 
-  if parsed.private?
-    torrent.info.private = parsed.private
-
-  if parsed.files.length > 1
-    torrent.info.files = parsed.files
-    for file in torrent.info.files
+  if parsed.files.length > 1 or parsed.usesExtraneousFilesArray
+    for file in parsed.files
       file.path = file.path.split('/')
-    delete torrent.info.length
+      if parsed.usesDuplicateUtf8PathKey
+        file['path.utf-8'] = file.path
+    delete parsed.info.length
+  else
+    delete parsed.files
 
   flatAnnounceList = _.flattenDeep(parsed.announce)
-  if flatAnnounceList.length isnt 0
-    torrent.announce = flatAnnounceList[0]
   if flatAnnounceList.length > 1
     # Only add an announce-list if the "multiple trackers" feature (introduced
     # in BEP12) is being used. This reduces the size of the torret file.
-    torrent['announce-list'] = parsed.announce.map((url) ->
+    parsed['announce-list'] = parsed.announce.map((url) ->
       # unflatten announce-list
       if Array.isArray(url) then url else [url]
     )
 
-  if parsed.comment then torrent.comment = parsed.comment
-  if parsed.created then torrent['creation date'] = parsed.created
-  if parsed.createdBy then torrent['created by'] = parsed.createdBy
-  if parsed.encoding then torrent.encoding = parsed.encoding
-  if parsed.urlList and parsed.urlList.length isnt 0
-    torrent['url-list'] = parsed.urlList
+  if flatAnnounceList.length isnt 0
+    parsed.announce = flatAnnounceList[0]
+  else
+    delete parsed.announce
 
-  bencode.encode torrent
+  parsed.pieces = parsed.pieces.join('')
+  parsed = mapValuesRecursive(parsed, (value, key, fullPath) ->
+    if key in HEX_ENCODED_FIELDS
+      new Buffer(value, 'hex')
+    else if typeof value is 'string'
+      encoding = (
+        if fullPath[-1...][0] is 'path.utf-8'
+          'utf8'
+        else
+          parsed.encoding or 'utf8'
+      )
+      encodeStringBuffer(value, encoding, key)
+    else
+      value
+  )
+
+  for key, newKey of FIELD_RENAME_MAP
+    if parsed[newKey]?
+      throw new Error("Torrent has disallowed key #{newKey}")
+    if parsed[key]?
+      parsed[newKey] = parsed[key]
+      delete parsed[key]
+
+  for key in MOVE_FIELD_FROM_INFO
+    if parsed.info[key]?
+      throw new Error("Torrent has key info.#{key} (should be outside of info)")
+    if parsed[key]?
+      parsed.info[key] = parsed[key]
+      delete parsed[key]
+
+  if parsed.usesDuplicateUtf8NameKey
+    parsed.info['name.utf-8'] = parsed.info.name
+
+  # make sure that the resulting infoHash matches the infoHash field
+  if not skipInfoHashCheck and
+     parsed.infoHash isnt sha1.sync(bencode.encode(parsed.info))
+    throw new Error("Provided infoHash doesn't match result")
+
+  for key in NON_DATA_FIELDS
+    delete parsed[key]
+
+  bencode.encode parsed
 
 decodeStringBuffer = (buf, encoding, key) ->
   if key in HEX_ENCODED_FIELDS

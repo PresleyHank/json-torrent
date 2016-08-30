@@ -12,6 +12,7 @@
   "dependencies": {
     "argparse": "^1.0.7",
     "bencode": "^0.10.0",
+    "iconv-lite": "^0.4.13",
     "lodash": "^4.15.0",
     "simple-sha1": "^2.0.0"
   },
