@@ -217,20 +217,6 @@ encode = (parsed, skipInfoHashCheck = false) ->
     parsed.urlList = parsed.urlList[0]
 
   parsed.pieces = parsed.pieces.join('')
-  parsed = mapValuesRecursive(parsed, (value, key, fullPath) ->
-    if key in HEX_ENCODED_FIELDS
-      new Buffer(value, 'hex')
-    else if typeof value is 'string'
-      encoding = (
-        if fullPath[-1...][0] is 'path.utf-8'
-          'utf8'
-        else
-          parsed.encoding or 'utf8'
-      )
-      encodeStringBuffer(value, encoding, key)
-    else
-      value
-  )
 
   for key, newKey of FIELD_RENAME_MAP
     if parsed[newKey]?
@@ -248,6 +234,23 @@ encode = (parsed, skipInfoHashCheck = false) ->
 
   if parsed.usesDuplicateUtf8NameKey
     parsed.info['name.utf-8'] = parsed.info.name
+
+  parsed = mapValuesRecursive(parsed, (value, key, fullPath) ->
+    if key is 'infoHash'
+      value # don't touch this key
+    else if key in HEX_ENCODED_FIELDS
+      new Buffer(value, 'hex')
+    else if typeof value is 'string'
+      encoding = (
+        if fullPath[-1...][0] is 'path.utf-8'
+          'utf8'
+        else
+          parsed.encoding or 'utf8'
+      )
+      encodeStringBuffer(value, encoding, key)
+    else
+      value
+  )
 
   # make sure that the resulting infoHash matches the infoHash field
   if not skipInfoHashCheck and
