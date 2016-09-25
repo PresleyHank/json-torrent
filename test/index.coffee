@@ -78,7 +78,7 @@ describe 'announce-list', ->
 describe 'url-list', ->
   it 'should parse empty url-list', ->
     torrent = decode(leavesEmptyUrlList)
-    should.deepEqual torrent.urlList, []
+    should.deepEqual torrent.urlList, ['']
 
   it 'parse url-list for webseed support', ->
     torrent = decode(leavesUrlList)

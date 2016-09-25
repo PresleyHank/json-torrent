@@ -34,5 +34,6 @@
   ],
   "urlList": [
     "http://spaceboyz.net/~astro/bitlove-show/bl001-introduction.webm"
-  ]
+  ],
+  "usesSingleItemUrlListArray": true
 }

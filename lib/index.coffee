@@ -28,6 +28,7 @@ NON_DATA_FIELDS = [
   'usesDuplicateUtf8NameKey'
   'usesDuplicateUtf8PathKey'
   'usesExtraneousFilesArray'
+  'usesSingleItemUrlListArray'
 ]
 
 # announce-list is also renamed, but it's merged with the announce field, so
@@ -120,8 +121,20 @@ decode = (torrent) ->
     torrent.usesDuplicateUtf8NameKey = true
     delete torrent.info['name.utf-8']
 
+  # all torrents have info keys, so we can safely recreate this
   if Object.keys(torrent.info).length is 0
     delete torrent.info
+
+  # handle url-list (BEP19 / web seeding)
+  if Array.isArray(torrent.urlList) and torrent.urlList.length is 1
+    # you would expect that `url-list` would be set to a string when only 1 url
+    # is provided, so set a flag to note that this isn't the case. this way we
+    # can losslessly restore that in `encode`.
+    torrent.usesSingleItemUrlListArray = true
+
+  # if there is only 1 url then it will be represented as a string.
+  if typeof torrent.urlList is 'string'
+    torrent.urlList = [torrent.urlList]
 
   if torrent.files
     torrent.files = torrent.files.map((file, i) ->
@@ -199,6 +212,9 @@ encode = (parsed, skipInfoHashCheck = false) ->
     parsed.announce = flatAnnounceList[0]
   else
     delete parsed.announce
+
+  if parsed.urlList?.length is 1 and not parsed.usesSingleItemUrlListArray
+    parsed.urlList = parsed.urlList[0]
 
   parsed.pieces = parsed.pieces.join('')
   parsed = mapValuesRecursive(parsed, (value, key, fullPath) ->
