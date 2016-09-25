@@ -3,6 +3,8 @@ bencode = require 'bencode'
 iconv = require 'iconv-lite'
 sha1 = require 'simple-sha1'
 
+HEX_ENCODED_FIELDS = require './hex-encoded-fields'
+
 MOVE_FIELD_FROM_INFO = [
   'files'
   'name'
@@ -17,15 +19,6 @@ NON_DATA_FIELDS = [
   'usesDuplicateUtf8NameKey'
   'usesDuplicateUtf8PathKey'
   'usesExtraneousFilesArray'
-]
-
-HEX_ENCODED_FIELDS = [
-  'ed2k'
-  'filehash'
-  'info_hash'
-  'pieces'
-  'sha1'
-  'unique id'
 ]
 
 # announce-list is also renamed, but it's merged with the announce field, so
