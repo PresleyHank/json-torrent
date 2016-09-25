@@ -77,6 +77,8 @@ decode = (torrent) ->
     torrent.info.files.forEach (file, i) ->
       ensure typeof file.length is 'number', "info.files[#{i}].length"
       ensure file.path, "info.files[#{i}].path"
+      for segment, e in file.path
+        ensure Buffer.isBuffer(segment), "info.files[#{i}].path[#{e}]"
       return
   else
     ensure typeof torrent.info.length is 'number', 'info.length'
