@@ -28,6 +28,8 @@ NON_DATA_FIELDS = [
   'usesDuplicateUtf8NameKey'
   'usesDuplicateUtf8PathKey'
   'usesExtraneousFilesArray'
+  'usesExtraneousLengthKey'
+  'usesOnlyUtf8PathKey'
   'usesSingleItemUrlListArray'
 ]
 
@@ -38,6 +40,20 @@ FIELD_RENAME_MAP =
   createdBy: 'created by'
   pieceLength: 'piece length'
   urlList: 'url-list'
+
+testForDuplicateUtf8PathKey = (files) ->
+  # `path.utf-8` and the regular `path` key has to be identical in all objects
+  # for us to be able to losslessly remove `path.utf-8`
+  for file in files
+    if not file.path? or not file['path.utf-8']? or
+       not _.isEqual(file.path, file['path.utf-8'])
+      return false
+  return true
+
+testForOnlyUtf8PathKey = (files) ->
+  for file in files
+    if file.path? or not file['path.utf-8']? then return false
+  return true
 
 ###*
  * Parse a torrent. Throws an exception if the torrent is missing required
@@ -102,6 +118,11 @@ decode = (torrent) ->
   )
   delete torrent['announce-list']
 
+  if torrent.info.files and torrent.info.length?
+    # the files array already has a length key for each file, but some torrents
+    # include an extra one at info.length, even when a files array is present
+    torrent.usesExtraneousLengthKey = true
+
   torrentLength = torrent.info.length
   delete torrent.info.length
 
@@ -137,30 +158,21 @@ decode = (torrent) ->
     torrent.urlList = [torrent.urlList]
 
   if torrent.files
-    torrent.files = torrent.files.map((file, i) ->
-      # actually, we should loop through the whole thing and decide if all the
-      # keys are duplicates first
-      if i isnt 0 and file['path.utf-8']? isnt torrent.usesDuplicateUtf8PathKey?
-        # all of the earlier keys up to this point had path.utf-8 or all of the
-        # earlier keys up to this point didn't have path.utf-8
-        throw new Error("Torrent has mix between path.utf-8 and regular path
-        keys")
+    if testForOnlyUtf8PathKey(torrent.files)
+      torrent.usesOnlyUtf8PathKey = true
+      for file in torrent.files
+        file.path = file['path.utf-8']
+        delete file['path.utf-8']
+    else if testForDuplicateUtf8PathKey(torrent.files)
+      # we set usesDuplicateUtf8PathKey, so we can add it back during encode by
+      # copying the regular path key
+      torrent.usesDuplicateUtf8PathKey = true
+      for file in torrent.files
+        delete file['path.utf-8']
 
-      if file['path.utf-8']?
-        if _.isEqual(file.path, file['path.utf-8'])
-          # we set usesDuplicateUtf8PathKey, so we can add it back during encode
-          # by copying the regular path key
-          torrent.usesDuplicateUtf8PathKey = true
-          delete file['path.utf-8']
-        else
-          throw new Error("Torrent has unequal path keys... implement this")
-
-        if not file.path?
-          throw new Error("Torrent has no regular path key")
-
+    for file in torrent.files
       file.path = joinPathArray(file.path)
-      return file
-    )
+
     if torrent.files.length is 1
       # uTorrent does this, and we need to pay attention to it because it will
       # break the infoHash & throw an error if we normalize the files array
@@ -193,9 +205,12 @@ encode = (parsed, skipInfoHashCheck = false) ->
   if parsed.files.length > 1 or parsed.usesExtraneousFilesArray
     for file in parsed.files
       file.path = file.path.split('/')
-      if parsed.usesDuplicateUtf8PathKey
+      if parsed.usesOnlyUtf8PathKey
         file['path.utf-8'] = file.path
-    delete parsed.info.length
+        delete file.path
+      else if parsed.usesDuplicateUtf8PathKey
+        file['path.utf-8'] = file.path
+    if not parsed.usesExtraneousLengthKey then delete parsed.info.length
   else
     delete parsed.files
 
