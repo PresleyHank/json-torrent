@@ -1,7 +1,16 @@
 _ = require 'lodash'
 bencode = require 'bencode'
-iconv = require 'iconv-lite'
 sha1 = require 'simple-sha1'
+
+{
+  decodeStringBuffer
+  encodeStringBuffer
+  ensure
+  joinPathArray
+  mapValuesRecursive
+  moveKey
+  splitPieces
+} = require './util'
 
 HEX_ENCODED_FIELDS = require './hex-encoded-fields'
 
@@ -233,61 +242,5 @@ encode = (parsed, skipInfoHashCheck = false) ->
     delete parsed[key]
 
   bencode.encode parsed
-
-decodeStringBuffer = (buf, encoding, key) ->
-  if key in HEX_ENCODED_FIELDS
-    buf.toString('hex') # hex always works
-  else
-    iconv.decode(buf, encoding)
-
-encodeStringBuffer = (buf, encoding, key) ->
-  if key in HEX_ENCODED_FIELDS
-    new Buffer(value, 'hex')
-  else
-    iconv.encode(buf, encoding)
-
-moveKey = (obj, oldKey, newKey) ->
-  if obj[oldKey]?
-    obj[newKey] = obj[oldKey]
-    delete obj[oldKey]
-
-splitPieces = (buf) ->
-  if buf.length < 40 or buf.length % 40 isnt 0
-    throw new Error('Pieces list has incorrect length')
-  pieces = []
-  i = 0
-  while i < buf.length
-    pieces.push buf.slice(i, i + 40)
-    i += 40
-  pieces
-
-###*
- * Join path array, while checking to make sure it will be able to be split
-   later.
- * @param {Array} pathArray
- * @return {String} The joined path.
-###
-joinPathArray = (pathArray) ->
-  pathArray.map((pathSegment) ->
-    pathSegment = pathSegment.toString()
-    if '/' in pathSegment then throw new Error(
-      "Path separator found in path segment: \"#{pathSegment}\""
-    )
-    return pathSegment
-  ).join('/')
-
-ensure = (bool, fieldName) ->
-  if not bool
-    throw new Error('Torrent is missing required field: ' + fieldName)
-  return
-
-mapValuesRecursive = (obj, mapFn, fullPath = []) ->
-  fn = if Array.isArray(obj) then _.map else _.mapValues
-  fn(obj, (value, key) ->
-    if Array.isArray(value) or _.isPlainObject(value)
-      mapValuesRecursive(value, mapFn, fullPath.concat(key))
-    else
-      mapFn(value, key, fullPath)
-  )
 
 module.exports = {decode, encode}
