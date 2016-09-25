@@ -270,9 +270,10 @@ encode = (parsed, skipInfoHashCheck = false) ->
   )
 
   # make sure that the resulting infoHash matches the infoHash field
-  if not skipInfoHashCheck and
-     parsed.infoHash isnt sha1.sync(bencode.encode(parsed.info))
-    throw new Error("Provided infoHash doesn't match result")
+  resultingInfoHash = sha1.sync(bencode.encode(parsed.info))
+  if not skipInfoHashCheck and parsed.infoHash isnt resultingInfoHash
+    throw new Error("Provided infoHash (#{parsed.infoHash}) doesn't match
+    result (#{resultingInfoHash})")
 
   for key in NON_DATA_FIELDS
     delete parsed[key]
