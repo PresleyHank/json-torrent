@@ -21,5 +21,6 @@
   "pieceLength": 16384,
   "pieces": [
     "1f74648e50a6a6708ec54ab327a163d5536b7ced"
-  ]
+  ],
+  "private": false
 }

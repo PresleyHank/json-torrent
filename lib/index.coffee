@@ -31,6 +31,8 @@ NON_DATA_FIELDS = [
   'usesExtraneousLengthKey'
   'usesOnlyUtf8PathKey'
   'usesSingleItemUrlListArray'
+  'usesStringPrivateValue'
+  'usesExplicitNotPrivateValue'
 ]
 
 # announce-list is also renamed, but it's merged with the announce field, so
@@ -188,8 +190,22 @@ decode = (torrent) ->
   if torrent.private?
     if torrent.private in [0, 1]
       torrent.private = Boolean(torrent.private)
+    else if torrent.private in ["0", "1"]
+      # a small percentage of torrents have this error
+      torrent.usesStringPrivateValue = true
+      torrent.private = Boolean(+torrent.private)
     else
       throw new Error("Bad value for field 'private': #{torrent.private}")
+
+    if not torrent.private
+      # some torrents include an explict `private=0`, even though torrents are
+      # public by default and this adds to the file size. since we always
+      # include the private field in the JSON representation, we set this flag
+      # to make sure we get it right in `encode`.
+      torrent.usesExplicitNotPrivateValue = true
+  else
+    # this is the default for all torrents (when the private key is omitted)
+    torrent.private = false
 
   torrent.pieces = splitPieces(torrent.pieces)
   return torrent
@@ -234,6 +250,11 @@ encode = (parsed, skipInfoHashCheck = false) ->
     parsed.urlList = parsed.urlList[0]
 
   parsed.pieces = parsed.pieces.join('')
+
+  if not parsed.private and not parsed.usesExplicitNotPrivateValue
+    delete parsed.private
+  else if parsed.usesStringPrivateValue
+    parsed.private = String(Number(parsed.private))
 
   for key, newKey of FIELD_RENAME_MAP
     if parsed[newKey]?
